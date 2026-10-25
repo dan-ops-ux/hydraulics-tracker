@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hydraulics Past Boards - Group Tracker & Comments</title>
+    <title>Hydraulics Past Boards - Group Tracker & Multi-Select</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
@@ -13,7 +13,7 @@
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl gap-4">
             <div>
                 <h1 class="text-2xl md:text-3xl font-extrabold text-blue-400 tracking-tight">Hydraulics Past Boards Tracker</h1>
-                <p class="text-sm text-slate-400 mt-1">CELE Compilation Progress, Live Chat & Duplicate/Merged Tracking</p>
+                <p class="text-sm text-slate-400 mt-1">CELE Compilation Progress, Multi-Select Bulk Actions & Duplicates</p>
             </div>
             <div class="flex gap-3 w-full md:w-auto items-center">
                 <button onclick="exportJSON()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl shadow-lg transition">Export Backup</button>
@@ -42,7 +42,7 @@
 
         <!-- Navigation Tabs -->
         <div class="flex border-b border-slate-800 gap-4">
-            <button id="tab-tracker-btn" onclick="switchTab('tracker')" class="pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400 transition">Progress Tracker & Duplicates</button>
+            <button id="tab-tracker-btn" onclick="switchTab('tracker')" class="pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400 transition">Progress Tracker & Multi-Select</button>
             <button id="tab-comments-btn" onclick="switchTab('comments')" class="pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-2">
                 Task Comments / Threads
                 <span id="open-comment-badge" class="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs rounded-full">0 Open</span>
@@ -137,7 +137,7 @@
                 </div>
                 <div>
                     <label class="text-xs text-slate-400 font-medium">Comment / Problem Details:</label>
-                    <textarea id="comment-body" rows="3" placeholder="Describe duplicates or notes (e.g. Situation 5 matches Lesson 2 Situation 12)..." class="w-full mt-1 bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-xl p-3 focus:outline-none focus:border-blue-500"></textarea>
+                    <textarea id="comment-body" rows="3" placeholder="Describe duplicates or notes..." class="w-full mt-1 bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-xl p-3 focus:outline-none focus:border-blue-500"></textarea>
                 </div>
                 <div class="text-right">
                     <button onclick="postComment()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg transition">Post Comment Thread</button>
@@ -162,28 +162,40 @@
 
     </div>
 
-    <!-- Modal for Detailed Situation Checklist & Duplicate Tagging -->
+    <!-- Modal for Detailed Situation Checklist & Multi-Select Actions -->
     <div id="modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
             <div class="p-6 bg-slate-800/70 border-b border-slate-700 flex justify-between items-center">
                 <div>
                     <h3 id="modal-title" class="text-xl font-bold text-white">Lesson Situations</h3>
-                    <p id="modal-subtitle" class="text-xs text-slate-400 mt-1">Adjust required count for duplicates, toggle status, or tag duplicate notes.</p>
+                    <p id="modal-subtitle" class="text-xs text-slate-400 mt-1">Select multiple situations using checkboxes, then apply status below.</p>
                 </div>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-white text-2xl font-bold px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 transition">&times;</button>
             </div>
             
-            <!-- Adjust Lesson Count Bar -->
-            <div class="p-4 bg-slate-800/40 border-b border-slate-700 flex justify-between items-center px-6">
-                <span class="text-xs text-slate-300 font-semibold">Total Required Count for this Lesson:</span>
+            <!-- Adjust Lesson Count & Multi-Select Action Bar -->
+            <div class="p-4 bg-slate-800/50 border-b border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-3 px-6">
                 <div class="flex items-center gap-2">
-                    <input type="number" id="modal-lesson-count" min="1" max="150" class="w-20 bg-slate-950 border border-slate-700 text-center text-xs text-white rounded-lg px-2 py-1 font-bold">
-                    <button onclick="updateLessonCount()" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition">Update Count</button>
+                    <span class="text-xs text-slate-300 font-semibold">Req Count:</span>
+                    <input type="number" id="modal-lesson-count" min="1" max="150" class="w-16 bg-slate-950 border border-slate-700 text-center text-xs text-white rounded-lg px-2 py-1 font-bold">
+                    <button onclick="updateLessonCount()" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition">Update</button>
+                </div>
+                <!-- Selection Selectors & Action Buttons -->
+                <div class="flex flex-wrap gap-2 items-center">
+                    <button onclick="toggleSelectAll()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700">Select All</button>
+                    <select id="multi-sit-action" class="bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-lg px-2 py-1.5 focus:outline-none">
+                        <option value="sit-Yes">Mark Sit: Found (Yes)</option>
+                        <option value="sit-No">Mark Sit: Not Found (No)</option>
+                        <option value="sol-solved">Mark Sol: Solved</option>
+                        <option value="sol-found">Mark Sol: Found</option>
+                        <option value="sol-not found">Mark Sol: Not Found</option>
+                    </select>
+                    <button onclick="applyMultiAction()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition shadow">Apply to Checked</button>
                 </div>
             </div>
 
             <div class="p-6 overflow-y-auto space-y-4 flex-1" id="modal-content">
-                <!-- Situation list generated here -->
+                <!-- Situation list generated here with checkboxes -->
             </div>
             <div class="p-4 bg-slate-800/50 border-t border-slate-700 text-right">
                 <button onclick="closeModal()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition">Done / Close</button>
@@ -239,13 +251,12 @@
             { id: 15, lesson: "Lesson 15", topic: "Hydrodynamics", member: "Dancel", count: 6 }
         ];
 
-        let topics = JSON.parse(localStorage.getItem('hydraulics_topics_v2')) || initialTopics;
-        let appData = JSON.parse(localStorage.getItem('hydraulics_tracker_v4')) || {};
+        let topics = JSON.parse(localStorage.getItem('hydraulics_topics_v4')) || initialTopics;
+        let appData = JSON.parse(localStorage.getItem('hydraulics_tracker_v6')) || {};
         let commentsData = JSON.parse(localStorage.getItem('hydraulics_comments_v1')) || {};
         let activeCommentFilter = 'all';
         let currentLesson = null;
 
-        // Ensure appData has structure for all situations and notes
         topics.forEach(t => {
             if (!appData[t.lesson]) appData[t.lesson] = {};
             for (let i = 1; i <= t.count; i++) {
@@ -270,8 +281,8 @@
         };
 
         function saveData() {
-            localStorage.setItem('hydraulics_tracker_v4', JSON.stringify(appData));
-            localStorage.setItem('hydraulics_topics_v2', JSON.stringify(topics));
+            localStorage.setItem('hydraulics_tracker_v6', JSON.stringify(appData));
+            localStorage.setItem('hydraulics_topics_v4', JSON.stringify(topics));
             if (isFirebaseConnected && db) {
                 set(ref(db, 'trackerData'), appData);
                 set(ref(db, 'topicsData'), topics);
@@ -285,7 +296,7 @@
                 const val = snapshot.val();
                 if (val) {
                     appData = val;
-                    localStorage.setItem('hydraulics_tracker_v4', JSON.stringify(appData));
+                    localStorage.setItem('hydraulics_tracker_v6', JSON.stringify(appData));
                     renderTable();
                     updateStats();
                 }
@@ -295,7 +306,7 @@
                 const val = snapshot.val();
                 if (val) {
                     topics = val;
-                    localStorage.setItem('hydraulics_topics_v2', JSON.stringify(topics));
+                    localStorage.setItem('hydraulics_topics_v4', JSON.stringify(topics));
                     renderTable();
                     updateStats();
                 }
@@ -350,6 +361,41 @@
                 saveData();
                 openModal(currentLesson);
             }
+        };
+
+        // Multi-Select Apply Action
+        window.applyMultiAction = function() {
+            if (!currentLesson) return;
+            const checkboxes = document.querySelectorAll('.sit-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert("Please check at least one situation first!");
+                return;
+            }
+
+            const action = document.getElementById('multi-sit-action').value;
+            if (!appData[currentLesson]) appData[currentLesson] = {};
+
+            checkboxes.forEach(cb => {
+                const sitName = cb.value;
+                if (!appData[currentLesson][sitName]) {
+                    appData[currentLesson][sitName] = { sitFound: 'No', solStatus: 'not found', note: '' };
+                }
+
+                if (action === 'sit-Yes') appData[currentLesson][sitName].sitFound = 'Yes';
+                if (action === 'sit-No') appData[currentLesson][sitName].sitFound = 'No';
+                if (action === 'sol-solved') appData[currentLesson][sitName].solStatus = 'solved';
+                if (action === 'sol-found') appData[currentLesson][sitName].solStatus = 'found';
+                if (action === 'sol-not found') appData[currentLesson][sitName].solStatus = 'not found';
+            });
+
+            saveData();
+            openModal(currentLesson);
+        };
+
+        window.toggleSelectAll = function() {
+            const checkboxes = document.querySelectorAll('.sit-checkbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
         };
 
         window.postComment = function() {
@@ -553,7 +599,7 @@
                     <td class="p-4 text-center font-bold text-emerald-400 font-mono">${solDoneCount} / ${t.count}</td>
                     <td class="p-4 text-center">
                         <button onclick="openModal('${t.lesson}')" class="px-3.5 py-1.5 bg-slate-800 hover:bg-blue-600 text-white font-medium text-xs rounded-xl border border-slate-700 hover:border-blue-500 transition shadow-sm">
-                            Manage / Duplicates
+                            Manage / Multi-Select
                         </button>
                     </td>
                 `;
@@ -590,7 +636,7 @@
             const topicObj = topics.find(t => t.lesson === lessonName);
             
             document.getElementById('modal-title').innerText = `${topicObj.lesson}: ${topicObj.topic}`;
-            document.getElementById('modal-subtitle').innerText = `Assigned to ${topicObj.member} • Tag duplicates or adjust required count below.`;
+            document.getElementById('modal-subtitle').innerText = `Assigned to ${topicObj.member} • Check boxes for situations 1, 5, 6... and apply action above.`;
             document.getElementById('modal-lesson-count').value = topicObj.count;
 
             const content = document.getElementById('modal-content');
@@ -604,9 +650,12 @@
                 div.className = "bg-slate-800/70 border border-slate-700/60 p-4 rounded-xl space-y-3";
                 div.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <span class="font-bold text-white text-base">${sitName}</span>
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" value="${sitName}" class="sit-checkbox w-4 h-4 rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                            <span class="font-bold text-white text-base">${sitName}</span>
+                        </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pl-7">
                         <div class="flex items-center justify-between bg-slate-900/60 border border-slate-700/50 p-2.5 rounded-lg">
                             <span class="text-xs text-slate-400 font-medium">Situation Found?</span>
                             <select onchange="updateSitFound('${lessonName}', '${sitName}', this.value)" class="bg-slate-900 border ${sitData.sitFound === 'Yes' ? 'border-blue-500 text-blue-400 font-bold' : 'border-slate-700 text-slate-300'} text-xs rounded-lg px-2.5 py-1.5 focus:outline-none transition">
@@ -624,7 +673,7 @@
                             </select>
                         </div>
                     </div>
-                    <div>
+                    <div class="pl-7">
                         <input type="text" value="${escapeHtml(sitData.note || '')}" placeholder="Duplicate / Merge Note (e.g. Duplicate of Lesson 2 Sit 5)..." onchange="updateSitNote('${lessonName}', '${sitName}', this.value)" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-amber-300 focus:outline-none focus:border-blue-500">
                     </div>
                 `;
