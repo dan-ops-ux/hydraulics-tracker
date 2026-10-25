@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hydraulics Past Boards - Group Tracker & Multi-Select</title>
+    <title>Hydraulics Past Boards - Group Tracker & Visual Progress</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
@@ -13,36 +13,65 @@
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl gap-4">
             <div>
                 <h1 class="text-2xl md:text-3xl font-extrabold text-blue-400 tracking-tight">Hydraulics Past Boards Tracker</h1>
-                <p class="text-sm text-slate-400 mt-1">CELE Compilation Progress, Multi-Select Bulk Actions & Duplicates</p>
+                <p class="text-sm text-slate-400 mt-1">CELE Compilation Progress, Circular Visual Progress & Multi-Select</p>
             </div>
             <div class="flex gap-3 w-full md:w-auto items-center">
                 <button onclick="exportJSON()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl shadow-lg transition">Export Backup</button>
             </div>
         </header>
 
-        <!-- Summary Cards -->
+        <!-- Summary Cards with Circular Progress -->
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Total Required (Adjustable)</p>
-                <p id="stat-total" class="text-3xl font-bold text-white mt-2">323</p>
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Total Required (Adjustable)</p>
+                    <p id="stat-total" class="text-3xl font-bold text-white mt-1">323</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-300 font-bold text-xs">ALL</div>
             </div>
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Situations Found</p>
-                <p id="stat-situations-found" class="text-3xl font-bold text-blue-400 mt-2">0</p>
+
+            <!-- Situations Found Card with Circular Progress -->
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Situations Found</p>
+                    <p id="stat-situations-found" class="text-3xl font-bold text-blue-400 mt-1">0</p>
+                </div>
+                <div class="relative w-12 h-12 flex items-center justify-center">
+                    <svg class="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                        <path class="text-slate-800" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                        <path id="circle-progress-sit" class="text-blue-500 transition-all duration-500" stroke-dasharray="0, 100" stroke-width="3.5" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                    </svg>
+                    <span id="circle-pct-sit" class="absolute text-[10px] font-bold text-blue-400">0%</span>
+                </div>
             </div>
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Solutions Done</p>
-                <p id="stat-solutions-done" class="text-3xl font-bold text-emerald-400 mt-2">0</p>
+
+            <!-- Solutions Done Card with Circular Progress -->
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Solutions Done</p>
+                    <p id="stat-solutions-done" class="text-3xl font-bold text-emerald-400 mt-1">0</p>
+                </div>
+                <div class="relative w-12 h-12 flex items-center justify-center">
+                    <svg class="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                        <path class="text-slate-800" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                        <path id="circle-progress-sol" class="text-emerald-500 transition-all duration-500" stroke-dasharray="0, 100" stroke-width="3.5" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                    </svg>
+                    <span id="circle-pct-sol" class="absolute text-[10px] font-bold text-emerald-400">0%</span>
+                </div>
             </div>
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Open Comments</p>
-                <p id="stat-open-comments" class="text-3xl font-bold text-amber-400 mt-2">0</p>
+
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Open Comments</p>
+                    <p id="stat-open-comments" class="text-3xl font-bold text-amber-400 mt-1">0</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-lg">💬</div>
             </div>
         </div>
 
         <!-- Navigation Tabs -->
         <div class="flex border-b border-slate-800 gap-4">
-            <button id="tab-tracker-btn" onclick="switchTab('tracker')" class="pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400 transition">Progress Tracker & Multi-Select</button>
+            <button id="tab-tracker-btn" onclick="switchTab('tracker')" class="pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400 transition">Progress Tracker & Circular Progress</button>
             <button id="tab-comments-btn" onclick="switchTab('comments')" class="pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-2">
                 Task Comments / Threads
                 <span id="open-comment-badge" class="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs rounded-full">0 Open</span>
@@ -182,20 +211,20 @@
                 </div>
                 <!-- Selection Selectors & Action Buttons -->
                 <div class="flex flex-wrap gap-2 items-center">
-                    <button onclick="toggleSelectAll()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700">Select All</button>
-                    <select id="multi-sit-action" class="bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-lg px-2 py-1.5 focus:outline-none">
+                    <button onclick="toggleSelectAll()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700/80 transition">Select All</button>
+                    <select id="multi-sit-action" class="bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-blue-500">
                         <option value="sit-Yes">Mark Sit: Found (Yes)</option>
                         <option value="sit-No">Mark Sit: Not Found (No)</option>
                         <option value="sol-solved">Mark Sol: Solved</option>
                         <option value="sol-found">Mark Sol: Found</option>
                         <option value="sol-not found">Mark Sol: Not Found</option>
                     </select>
-                    <button onclick="applyMultiAction()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition shadow">Apply to Checked</button>
+                    <button onclick="applyMultiAction()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition shadow-lg">Apply to Checked</button>
                 </div>
             </div>
 
             <div class="p-6 overflow-y-auto space-y-4 flex-1" id="modal-content">
-                <!-- Situation list generated here with checkboxes -->
+                <!-- Situation list generated here with sleek checkboxes -->
             </div>
             <div class="p-4 bg-slate-800/50 border-t border-slate-700 text-right">
                 <button onclick="closeModal()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition">Done / Close</button>
@@ -363,7 +392,6 @@
             }
         };
 
-        // Multi-Select Apply Action
         window.applyMultiAction = function() {
             if (!currentLesson) return;
             const checkboxes = document.querySelectorAll('.sit-checkbox:checked');
@@ -395,7 +423,19 @@
         window.toggleSelectAll = function() {
             const checkboxes = document.querySelectorAll('.sit-checkbox');
             const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-            checkboxes.forEach(cb => cb.checked = !allChecked);
+            checkboxes.forEach(cb => {
+                cb.checked = !allChecked;
+                updateCardStyle(cb);
+            });
+        };
+
+        window.updateCardStyle = function(checkbox) {
+            const card = checkbox.closest('.situation-card');
+            if (checkbox.checked) {
+                card.classList.add('border-blue-500/80', 'bg-slate-800/90', 'ring-1', 'ring-blue-500/50');
+            } else {
+                card.classList.remove('border-blue-500/80', 'bg-slate-800/90', 'ring-1', 'ring-blue-500/50');
+            }
         };
 
         window.postComment = function() {
@@ -599,7 +639,7 @@
                     <td class="p-4 text-center font-bold text-emerald-400 font-mono">${solDoneCount} / ${t.count}</td>
                     <td class="p-4 text-center">
                         <button onclick="openModal('${t.lesson}')" class="px-3.5 py-1.5 bg-slate-800 hover:bg-blue-600 text-white font-medium text-xs rounded-xl border border-slate-700 hover:border-blue-500 transition shadow-sm">
-                            Manage / Multi-Select
+                            Manage
                         </button>
                     </td>
                 `;
@@ -629,6 +669,15 @@
             document.getElementById('stat-total').innerText = totalReq;
             document.getElementById('stat-situations-found').innerText = totalSitFound;
             document.getElementById('stat-solutions-done').innerText = totalSolDone;
+
+            const sitPctTotal = totalReq > 0 ? Math.round((totalSitFound / totalReq) * 100) : 0;
+            const solPctTotal = totalReq > 0 ? Math.round((totalSolDone / totalReq) * 100) : 0;
+
+            document.getElementById('circle-pct-sit').innerText = `${sitPctTotal}%`;
+            document.getElementById('circle-progress-sit').style.strokeDasharray = `${sitPctTotal}, 100`;
+
+            document.getElementById('circle-pct-sol').innerText = `${solPctTotal}%`;
+            document.getElementById('circle-progress-sol').style.strokeDasharray = `${solPctTotal}, 100`;
         }
 
         window.openModal = function(lessonName) {
@@ -647,34 +696,34 @@
                 const sitData = (appData[lessonName] && appData[lessonName][sitName]) || { sitFound: 'No', solStatus: 'not found', note: '' };
 
                 const div = document.createElement('div');
-                div.className = "bg-slate-800/70 border border-slate-700/60 p-4 rounded-xl space-y-3";
+                div.className = "situation-card bg-slate-900/80 border border-slate-800 hover:border-slate-700/80 p-4 rounded-2xl space-y-3 transition shadow-md";
                 div.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-3">
-                            <input type="checkbox" value="${sitName}" class="sit-checkbox w-4 h-4 rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-blue-500 cursor-pointer">
-                            <span class="font-bold text-white text-base">${sitName}</span>
-                        </div>
+                        <label class="flex items-center gap-3 cursor-pointer group select-none">
+                            <input type="checkbox" value="${sitName}" onchange="updateCardStyle(this)" class="sit-checkbox w-5 h-5 rounded-lg bg-slate-950 border-2 border-slate-700 text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 focus:ring-offset-slate-900 cursor-pointer transition">
+                            <span class="font-extrabold text-slate-100 text-base group-hover:text-blue-400 transition">${sitName}</span>
+                        </label>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pl-7">
-                        <div class="flex items-center justify-between bg-slate-900/60 border border-slate-700/50 p-2.5 rounded-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="flex items-center justify-between bg-slate-950/70 border border-slate-800 p-2.5 rounded-xl">
                             <span class="text-xs text-slate-400 font-medium">Situation Found?</span>
-                            <select onchange="updateSitFound('${lessonName}', '${sitName}', this.value)" class="bg-slate-900 border ${sitData.sitFound === 'Yes' ? 'border-blue-500 text-blue-400 font-bold' : 'border-slate-700 text-slate-300'} text-xs rounded-lg px-2.5 py-1.5 focus:outline-none transition">
+                            <select onchange="updateSitFound('${lessonName}', '${sitName}', this.value)" class="bg-slate-900 border ${sitData.sitFound === 'Yes' ? 'border-blue-500/80 text-blue-400 font-bold' : 'border-slate-700/80 text-slate-300'} text-xs rounded-lg px-2.5 py-1.5 focus:outline-none transition">
                                 <option value="No" ${sitData.sitFound === 'No' ? 'selected' : ''}>No</option>
                                 <option value="Yes" ${sitData.sitFound === 'Yes' ? 'selected' : ''}>Yes</option>
                             </select>
                         </div>
 
-                        <div class="flex items-center justify-between bg-slate-900/60 border border-slate-700/50 p-2.5 rounded-lg">
+                        <div class="flex items-center justify-between bg-slate-950/70 border border-slate-800 p-2.5 rounded-lg">
                             <span class="text-xs text-slate-400 font-medium">Solution Status:</span>
-                            <select onchange="updateSolStatus('${lessonName}', '${sitName}', this.value)" class="bg-slate-900 border ${sitData.solStatus !== 'not found' ? 'border-emerald-500 text-emerald-400 font-bold' : 'border-slate-700 text-slate-300'} text-xs rounded-lg px-2.5 py-1.5 focus:outline-none transition">
+                            <select onchange="updateSolStatus('${lessonName}', '${sitName}', this.value)" class="bg-slate-900 border ${sitData.solStatus !== 'not found' ? 'border-emerald-500/80 text-emerald-400 font-bold' : 'border-slate-700/80 text-slate-300'} text-xs rounded-lg px-2.5 py-1.5 focus:outline-none transition">
                                 <option value="not found" ${sitData.solStatus === 'not found' ? 'selected' : ''}>Not Found</option>
                                 <option value="found" ${sitData.solStatus === 'found' ? 'selected' : ''}>Found</option>
                                 <option value="solved" ${sitData.solStatus === 'solved' ? 'selected' : ''}>Solved</option>
                             </select>
                         </div>
                     </div>
-                    <div class="pl-7">
-                        <input type="text" value="${escapeHtml(sitData.note || '')}" placeholder="Duplicate / Merge Note (e.g. Duplicate of Lesson 2 Sit 5)..." onchange="updateSitNote('${lessonName}', '${sitName}', this.value)" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-amber-300 focus:outline-none focus:border-blue-500">
+                    <div>
+                        <input type="text" value="${escapeHtml(sitData.note || '')}" placeholder="Duplicate / Merge Note (e.g. Duplicate of Lesson 2 Sit 5)..." onchange="updateSitNote('${lessonName}', '${sitName}', this.value)" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs text-amber-300 placeholder-slate-600 focus:outline-none focus:border-blue-500/80 transition">
                     </div>
                 `;
                 content.appendChild(div);
