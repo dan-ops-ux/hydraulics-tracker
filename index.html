@@ -13,7 +13,7 @@
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl gap-4">
             <div>
                 <h1 class="text-2xl md:text-3xl font-extrabold text-blue-400 tracking-tight">Hydraulics Past Boards Tracker</h1>
-                <p class="text-sm text-slate-400 mt-1">CELE Compilation Progress, Live Chat & Task Comments</p>
+                <p class="text-sm text-slate-400 mt-1">CELE Compilation Progress, Live Chat & Duplicate/Merged Tracking</p>
             </div>
             <div class="flex gap-3 w-full md:w-auto items-center">
                 <button onclick="exportJSON()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl shadow-lg transition">Export Backup</button>
@@ -23,7 +23,7 @@
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Total Required</p>
+                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Total Required (Adjustable)</p>
                 <p id="stat-total" class="text-3xl font-bold text-white mt-2">323</p>
             </div>
             <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
@@ -42,7 +42,7 @@
 
         <!-- Navigation Tabs -->
         <div class="flex border-b border-slate-800 gap-4">
-            <button id="tab-tracker-btn" onclick="switchTab('tracker')" class="pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400 transition">Progress Tracker</button>
+            <button id="tab-tracker-btn" onclick="switchTab('tracker')" class="pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400 transition">Progress Tracker & Duplicates</button>
             <button id="tab-comments-btn" onclick="switchTab('comments')" class="pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-2">
                 Task Comments / Threads
                 <span id="open-comment-badge" class="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs rounded-full">0 Open</span>
@@ -61,7 +61,7 @@
                                     <th class="p-4">Lesson #</th>
                                     <th class="p-4">Topic Name</th>
                                     <th class="p-4">Assigned</th>
-                                    <th class="p-4 text-center">Req</th>
+                                    <th class="p-4 text-center">Req Count</th>
                                     <th class="p-4 text-center">Sit Found</th>
                                     <th class="p-4 text-center">Sol Done</th>
                                     <th class="p-4 text-center">Manage</th>
@@ -137,7 +137,7 @@
                 </div>
                 <div>
                     <label class="text-xs text-slate-400 font-medium">Comment / Problem Details:</label>
-                    <textarea id="comment-body" rows="3" placeholder="Describe the issue or notes (e.g. Missing solution key for problem #3, please verify answer...)" class="w-full mt-1 bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-xl p-3 focus:outline-none focus:border-blue-500"></textarea>
+                    <textarea id="comment-body" rows="3" placeholder="Describe duplicates or notes (e.g. Situation 5 matches Lesson 2 Situation 12)..." class="w-full mt-1 bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-xl p-3 focus:outline-none focus:border-blue-500"></textarea>
                 </div>
                 <div class="text-right">
                     <button onclick="postComment()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg transition">Post Comment Thread</button>
@@ -162,16 +162,26 @@
 
     </div>
 
-    <!-- Modal for Detailed Situation Checklist -->
+    <!-- Modal for Detailed Situation Checklist & Duplicate Tagging -->
     <div id="modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
             <div class="p-6 bg-slate-800/70 border-b border-slate-700 flex justify-between items-center">
                 <div>
                     <h3 id="modal-title" class="text-xl font-bold text-white">Lesson Situations</h3>
-                    <p id="modal-subtitle" class="text-xs text-slate-400 mt-1">First select if situation is found, then set its solution status.</p>
+                    <p id="modal-subtitle" class="text-xs text-slate-400 mt-1">Adjust required count for duplicates, toggle status, or tag duplicate notes.</p>
                 </div>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-white text-2xl font-bold px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 transition">&times;</button>
             </div>
+            
+            <!-- Adjust Lesson Count Bar -->
+            <div class="p-4 bg-slate-800/40 border-b border-slate-700 flex justify-between items-center px-6">
+                <span class="text-xs text-slate-300 font-semibold">Total Required Count for this Lesson:</span>
+                <div class="flex items-center gap-2">
+                    <input type="number" id="modal-lesson-count" min="1" max="150" class="w-20 bg-slate-950 border border-slate-700 text-center text-xs text-white rounded-lg px-2 py-1 font-bold">
+                    <button onclick="updateLessonCount()" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition">Update Count</button>
+                </div>
+            </div>
+
             <div class="p-6 overflow-y-auto space-y-4 flex-1" id="modal-content">
                 <!-- Situation list generated here -->
             </div>
@@ -211,7 +221,7 @@
             document.getElementById('chat-status').className = 'text-xs text-amber-400 font-semibold';
         }
 
-        const topics = [
+        const initialTopics = [
             { id: 1, lesson: "Lesson 1", topic: "Fluid Properties", member: "Joeram", count: 6 },
             { id: 2, lesson: "Lesson 2", topic: "Pressure", member: "Joeram", count: 38 },
             { id: 3, lesson: "Lesson 3", topic: "Dams / Gates", member: "Joeram", count: 4 },
@@ -229,15 +239,18 @@
             { id: 15, lesson: "Lesson 15", topic: "Hydrodynamics", member: "Dancel", count: 6 }
         ];
 
-        let appData = JSON.parse(localStorage.getItem('hydraulics_tracker_v3')) || {};
+        let topics = JSON.parse(localStorage.getItem('hydraulics_topics_v2')) || initialTopics;
+        let appData = JSON.parse(localStorage.getItem('hydraulics_tracker_v4')) || {};
         let commentsData = JSON.parse(localStorage.getItem('hydraulics_comments_v1')) || {};
         let activeCommentFilter = 'all';
+        let currentLesson = null;
 
+        // Ensure appData has structure for all situations and notes
         topics.forEach(t => {
-            if (!appData[t.lesson]) {
-                appData[t.lesson] = {};
-                for (let i = 1; i <= t.count; i++) {
-                    appData[t.lesson][`Situation ${i}`] = { sitFound: 'No', solStatus: 'not found' };
+            if (!appData[t.lesson]) appData[t.lesson] = {};
+            for (let i = 1; i <= t.count; i++) {
+                if (!appData[t.lesson][`Situation ${i}`]) {
+                    appData[t.lesson][`Situation ${i}`] = { sitFound: 'No', solStatus: 'not found', note: '' };
                 }
             }
         });
@@ -257,9 +270,11 @@
         };
 
         function saveData() {
-            localStorage.setItem('hydraulics_tracker_v3', JSON.stringify(appData));
+            localStorage.setItem('hydraulics_tracker_v4', JSON.stringify(appData));
+            localStorage.setItem('hydraulics_topics_v2', JSON.stringify(topics));
             if (isFirebaseConnected && db) {
                 set(ref(db, 'trackerData'), appData);
+                set(ref(db, 'topicsData'), topics);
             }
             renderTable();
             updateStats();
@@ -270,7 +285,17 @@
                 const val = snapshot.val();
                 if (val) {
                     appData = val;
-                    localStorage.setItem('hydraulics_tracker_v3', JSON.stringify(appData));
+                    localStorage.setItem('hydraulics_tracker_v4', JSON.stringify(appData));
+                    renderTable();
+                    updateStats();
+                }
+            });
+
+            onValue(ref(db, 'topicsData'), (snapshot) => {
+                const val = snapshot.val();
+                if (val) {
+                    topics = val;
+                    localStorage.setItem('hydraulics_topics_v2', JSON.stringify(topics));
                     renderTable();
                     updateStats();
                 }
@@ -309,6 +334,23 @@
             renderLocalChat();
             renderComments();
         }
+
+        window.updateLessonCount = function() {
+            const newCount = parseInt(document.getElementById('modal-lesson-count').value);
+            if (!newCount || newCount < 1) return;
+            const topicObj = topics.find(t => t.lesson === currentLesson);
+            if (topicObj) {
+                topicObj.count = newCount;
+                if (!appData[currentLesson]) appData[currentLesson] = {};
+                for (let i = 1; i <= newCount; i++) {
+                    if (!appData[currentLesson][`Situation ${i}`]) {
+                        appData[currentLesson][`Situation ${i}`] = { sitFound: 'No', solStatus: 'not found', note: '' };
+                    }
+                }
+                saveData();
+                openModal(currentLesson);
+            }
+        };
 
         window.postComment = function() {
             const lesson = document.getElementById('comment-lesson').value;
@@ -384,7 +426,7 @@
             const keys = Object.keys(commentsData);
 
             if (keys.length === 0) {
-                container.innerHTML = '<div class="text-center text-slate-500 text-xs py-8 bg-slate-900 border border-slate-800 rounded-2xl">No comments or threads posted yet.</div>';
+                container.innerHTML = '<div class="text-center text-slate-500 text-xs py-8 bg-slate-900 border border-slate-800 rounded-2xl">No duplicate tags or comments posted yet.</div>';
                 document.getElementById('open-comment-badge').innerText = '0 Open';
                 document.getElementById('stat-open-comments').innerText = '0';
                 return;
@@ -410,7 +452,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <button onclick="toggleResolveComment('${key}')" class="px-3 py-1 text-xs font-semibold rounded-lg border transition ${c.resolved ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'}">
-                                ${c.resolved ? '↩ Re-open Issue' : '✓ Mark Resolved'}
+                                ${c.resolved ? '↩ Re-open' : '✓ Mark Resolved'}
                             </button>
                             <button onclick="deleteComment('${key}')" class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs rounded-lg transition">&times;</button>
                         </div>
@@ -506,12 +548,12 @@
                     <td class="p-4 font-semibold text-blue-400">${t.lesson}</td>
                     <td class="p-4 font-medium text-white">${t.topic}</td>
                     <td class="p-4 text-slate-300">${t.member}</td>
-                    <td class="p-4 text-center text-slate-300 font-mono">${t.count}</td>
+                    <td class="p-4 text-center text-slate-300 font-mono font-bold">${t.count}</td>
                     <td class="p-4 text-center font-bold text-blue-400 font-mono">${sitFoundCount} / ${t.count}</td>
                     <td class="p-4 text-center font-bold text-emerald-400 font-mono">${solDoneCount} / ${t.count}</td>
                     <td class="p-4 text-center">
                         <button onclick="openModal('${t.lesson}')" class="px-3.5 py-1.5 bg-slate-800 hover:bg-blue-600 text-white font-medium text-xs rounded-xl border border-slate-700 hover:border-blue-500 transition shadow-sm">
-                            Manage
+                            Manage / Duplicates
                         </button>
                     </td>
                 `;
@@ -521,17 +563,18 @@
         }
 
         function updateStats() {
-            let totalReq = 323;
+            let totalReq = 0;
             let totalSitFound = 0;
             let totalSolDone = 0;
 
             topics.forEach(t => {
+                totalReq += t.count;
                 if (appData[t.lesson]) {
                     for (let i = 1; i <= t.count; i++) {
                         const sit = appData[t.lesson][`Situation ${i}`];
                         if (sit) {
                             if (sit.sitFound === 'Yes') totalSitFound++;
-                            if (sit.solStatus === 'found' || sit.solStatus === 'solved') solDoneCount++;
+                            if (sit.solStatus === 'found' || sit.solStatus === 'solved') totalSolDone++;
                         }
                     }
                 }
@@ -543,17 +586,19 @@
         }
 
         window.openModal = function(lessonName) {
+            currentLesson = lessonName;
             const topicObj = topics.find(t => t.lesson === lessonName);
             
             document.getElementById('modal-title').innerText = `${topicObj.lesson}: ${topicObj.topic}`;
-            document.getElementById('modal-subtitle').innerText = `Assigned to ${topicObj.member} • Total Situations: ${topicObj.count}`;
+            document.getElementById('modal-subtitle').innerText = `Assigned to ${topicObj.member} • Tag duplicates or adjust required count below.`;
+            document.getElementById('modal-lesson-count').value = topicObj.count;
 
             const content = document.getElementById('modal-content');
             content.innerHTML = '';
 
             for (let i = 1; i <= topicObj.count; i++) {
                 const sitName = `Situation ${i}`;
-                const sitData = (appData[lessonName] && appData[lessonName][sitName]) || { sitFound: 'No', solStatus: 'not found' };
+                const sitData = (appData[lessonName] && appData[lessonName][sitName]) || { sitFound: 'No', solStatus: 'not found', note: '' };
 
                 const div = document.createElement('div');
                 div.className = "bg-slate-800/70 border border-slate-700/60 p-4 rounded-xl space-y-3";
@@ -579,6 +624,9 @@
                             </select>
                         </div>
                     </div>
+                    <div>
+                        <input type="text" value="${escapeHtml(sitData.note || '')}" placeholder="Duplicate / Merge Note (e.g. Duplicate of Lesson 2 Sit 5)..." onchange="updateSitNote('${lessonName}', '${sitName}', this.value)" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-amber-300 focus:outline-none focus:border-blue-500">
+                    </div>
                 `;
                 content.appendChild(div);
             }
@@ -594,25 +642,31 @@
 
         window.updateSitFound = function(lesson, situation, val) {
             if (!appData[lesson]) appData[lesson] = {};
-            if (!appData[lesson][situation]) appData[lesson][situation] = { sitFound: 'No', solStatus: 'not found' };
+            if (!appData[lesson][situation]) appData[lesson][situation] = { sitFound: 'No', solStatus: 'not found', note: '' };
             appData[lesson][situation].sitFound = val;
             saveData();
-            openModal(lesson);
         };
 
         window.updateSolStatus = function(lesson, situation, val) {
             if (!appData[lesson]) appData[lesson] = {};
-            if (!appData[lesson][situation]) appData[lesson][situation] = { sitFound: 'No', solStatus: 'not found' };
+            if (!appData[lesson][situation]) appData[lesson][situation] = { sitFound: 'No', solStatus: 'not found', note: '' };
             appData[lesson][situation].solStatus = val;
             saveData();
-            openModal(lesson);
+        };
+
+        window.updateSitNote = function(lesson, situation, val) {
+            if (!appData[lesson]) appData[lesson] = {};
+            if (!appData[lesson][situation]) appData[lesson][situation] = { sitFound: 'No', solStatus: 'not found', note: '' };
+            appData[lesson][situation].note = val;
+            saveData();
         };
 
         window.exportJSON = function() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+            const exportObj = { topics, appData, commentsData };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", "hydraulics_tracker_backup.json");
+            downloadAnchor.setAttribute("download", "hydraulics_tracker_full_backup.json");
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
