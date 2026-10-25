@@ -5,12 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hydraulics Past Boards - Group Tracker & Comments</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        window.firebaseModules = { initializeApp, getDatabase, ref, set, onValue, push, update, remove };
-    </script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
     <div class="max-w-7xl mx-auto space-y-6">
@@ -187,8 +181,11 @@
         </div>
     </div>
 
-    <!-- Firebase Script -->
-    <script>
+    <!-- Firebase SDK & Application Script -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
         const firebaseConfig = {
             apiKey: "AIzaSyAlxlRL5kaQDnRHW6ByQHRYIu6XJTwNzhw",
             authDomain: "hydraulics-tracker.firebaseapp.com",
@@ -203,15 +200,13 @@
         let isFirebaseConnected = false;
 
         try {
-            const { initializeApp } = window.firebaseModules;
-            const { getDatabase, ref, set, onValue, push, update, remove } = window.firebaseModules;
             const app = initializeApp(firebaseConfig);
             db = getDatabase(app);
             isFirebaseConnected = true;
             document.getElementById('chat-status').innerText = 'Connected Live';
             document.getElementById('chat-status').className = 'text-xs text-emerald-400 font-semibold';
         } catch (e) {
-            console.warn("Firebase connection error. Running in offline/localStorage mode.", e);
+            console.warn("Firebase connection error. Running in fallback mode.", e);
             document.getElementById('chat-status').innerText = 'Offline Mode';
             document.getElementById('chat-status').className = 'text-xs text-amber-400 font-semibold';
         }
@@ -247,7 +242,7 @@
             }
         });
 
-        function switchTab(tabName) {
+        window.switchTab = function(tabName) {
             if (tabName === 'tracker') {
                 document.getElementById('tab-tracker').classList.remove('hidden');
                 document.getElementById('tab-comments').classList.add('hidden');
@@ -259,12 +254,11 @@
                 document.getElementById('tab-comments-btn').className = "pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400 transition flex items-center gap-2";
                 document.getElementById('tab-tracker-btn').className = "pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition";
             }
-        }
+        };
 
         function saveData() {
             localStorage.setItem('hydraulics_tracker_v3', JSON.stringify(appData));
             if (isFirebaseConnected && db) {
-                const { ref, set } = window.firebaseModules;
                 set(ref(db, 'trackerData'), appData);
             }
             renderTable();
@@ -272,7 +266,6 @@
         }
 
         if (isFirebaseConnected && db) {
-            const { ref, onValue } = window.firebaseModules;
             onValue(ref(db, 'trackerData'), (snapshot) => {
                 const val = snapshot.val();
                 if (val) {
@@ -306,14 +299,9 @@
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             });
 
-            // Sync Comments from Firebase
             onValue(ref(db, 'commentsData'), (snapshot) => {
                 const val = snapshot.val();
-                if (val) {
-                    commentsData = val;
-                } else {
-                    commentsData = {};
-                }
+                commentsData = val || {};
                 localStorage.setItem('hydraulics_comments_v1', JSON.stringify(commentsData));
                 renderComments();
             });
@@ -322,7 +310,7 @@
             renderComments();
         }
 
-        function postComment() {
+        window.postComment = function() {
             const lesson = document.getElementById('comment-lesson').value;
             const situation = document.getElementById('comment-situation').value.trim();
             const author = document.getElementById('comment-author').value.trim() || "Anonymous";
@@ -342,7 +330,6 @@
             };
 
             if (isFirebaseConnected && db) {
-                const { ref, push } = window.firebaseModules;
                 push(ref(db, 'commentsData'), commentObj);
             } else {
                 const key = 'local_' + Date.now();
@@ -354,14 +341,13 @@
             document.getElementById('comment-body').value = '';
             document.getElementById('comment-situation').value = '';
             localStorage.setItem('hydraulics_nickname', author);
-        }
+        };
 
-        function toggleResolveComment(key) {
+        window.toggleResolveComment = function(key) {
             const currentStatus = commentsData[key].resolved;
             const author = localStorage.getItem('hydraulics_nickname') || "A teammate";
             
             if (isFirebaseConnected && db) {
-                const { ref, update } = window.firebaseModules;
                 update(ref(db, `commentsData/${key}`), {
                     resolved: !currentStatus,
                     resolvedBy: !currentStatus ? author : ""
@@ -372,24 +358,23 @@
                 localStorage.setItem('hydraulics_comments_v1', JSON.stringify(commentsData));
                 renderComments();
             }
-        }
+        };
 
-        function deleteComment(key) {
+        window.deleteComment = function(key) {
             if (!confirm("Delete this comment thread?")) return;
             if (isFirebaseConnected && db) {
-                const { ref, remove } = window.firebaseModules;
                 remove(ref(db, `commentsData/${key}`));
             } else {
                 delete commentsData[key];
                 localStorage.setItem('hydraulics_comments_v1', JSON.stringify(commentsData));
                 renderComments();
             }
-        }
+        };
 
-        function filterComments(type) {
+        window.filterComments = function(type) {
             activeCommentFilter = type;
             renderComments();
-        }
+        };
 
         function renderComments() {
             const container = document.getElementById('comments-container');
@@ -459,7 +444,7 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function sendMessage() {
+        window.sendMessage = function() {
             const nickInput = document.getElementById('chat-nickname');
             const textInput = document.getElementById('chat-input');
             const nickname = nickInput.value.trim() || "Anonymous";
@@ -470,7 +455,6 @@
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             if (isFirebaseConnected && db) {
-                const { ref, push } = window.firebaseModules;
                 push(ref(db, 'chatMessages'), { nickname, text, time });
             } else {
                 let localMsgs = JSON.parse(localStorage.getItem('hydraulics_chat_local')) || [];
@@ -482,11 +466,11 @@
             textInput.value = '';
             localStorage.setItem('hydraulics_nickname', nickname);
             document.getElementById('comment-author').value = nickname;
-        }
+        };
 
-        function handleKeyPress(e) {
-            if (e.key === 'Enter') sendMessage();
-        }
+        window.handleKeyPress = function(e) {
+            if (e.key === 'Enter') window.sendMessage();
+        };
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedNick = localStorage.getItem('hydraulics_nickname');
@@ -547,7 +531,7 @@
                         const sit = appData[t.lesson][`Situation ${i}`];
                         if (sit) {
                             if (sit.sitFound === 'Yes') totalSitFound++;
-                            if (sit.solStatus === 'found' || sit.solStatus === 'solved') totalSolDone++;
+                            if (sit.solStatus === 'found' || sit.solStatus === 'solved') solDoneCount++;
                         }
                     }
                 }
@@ -558,10 +542,7 @@
             document.getElementById('stat-solutions-done').innerText = totalSolDone;
         }
 
-        let currentLesson = null;
-
-        function openModal(lessonName) {
-            currentLesson = lessonName;
+        window.openModal = function(lessonName) {
             const topicObj = topics.find(t => t.lesson === lessonName);
             
             document.getElementById('modal-title').innerText = `${topicObj.lesson}: ${topicObj.topic}`;
@@ -604,30 +585,30 @@
 
             document.getElementById('modal').classList.remove('hidden');
             document.getElementById('modal').classList.add('flex');
-        }
+        };
 
-        function closeModal() {
+        window.closeModal = function() {
             document.getElementById('modal').classList.add('hidden');
             document.getElementById('modal').classList.remove('flex');
-        }
+        };
 
-        function updateSitFound(lesson, situation, val) {
+        window.updateSitFound = function(lesson, situation, val) {
             if (!appData[lesson]) appData[lesson] = {};
             if (!appData[lesson][situation]) appData[lesson][situation] = { sitFound: 'No', solStatus: 'not found' };
             appData[lesson][situation].sitFound = val;
             saveData();
             openModal(lesson);
-        }
+        };
 
-        function updateSolStatus(lesson, situation, val) {
+        window.updateSolStatus = function(lesson, situation, val) {
             if (!appData[lesson]) appData[lesson] = {};
             if (!appData[lesson][situation]) appData[lesson][situation] = { sitFound: 'No', solStatus: 'not found' };
             appData[lesson][situation].solStatus = val;
             saveData();
             openModal(lesson);
-        }
+        };
 
-        function exportJSON() {
+        window.exportJSON = function() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
@@ -635,7 +616,7 @@
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
-        }
+        };
 
         renderTable();
     </script>
