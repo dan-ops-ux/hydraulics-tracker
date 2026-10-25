@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hydraulics Past Boards - Group Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
+    <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-blue-400 tracking-tight">Hydraulics Past Boards Tracker</h1>
+                <p class="text-sm text-slate-400 mt-1">CELE Compilation Progress & Situation Status Board</p>
+            </div>
+            <div class="flex gap-3 w-full md:w-auto">
+                <button onclick="exportJSON()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl shadow-lg transition">Export Backup</button>
+            </div>
+        </header>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Total Situations Required</p>
+                <p id="stat-total" class="text-3xl font-bold text-white mt-2">323</p>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Total Situations Found</p>
+                <p id="stat-situations-found" class="text-3xl font-bold text-blue-400 mt-2">0</p>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Total Solutions Found / Solved</p>
+                <p id="stat-solutions-done" class="text-3xl font-bold text-emerald-400 mt-2">0</p>
+            </div>
+        </div>
+
+        <!-- Main Table Container -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-800/70 text-slate-300 uppercase text-xs tracking-wider border-b border-slate-700">
+                            <th class="p-4">Lesson #</th>
+                            <th class="p-4">Topic Name</th>
+                            <th class="p-4">Assigned Member</th>
+                            <th class="p-4 text-center">Required</th>
+                            <th class="p-4 text-center">Situations Found</th>
+                            <th class="p-4 text-center">Solutions Found / Solved</th>
+                            <th class="p-4 text-center">Manage Situations</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-slate-800 text-sm">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Detailed Situation Checklist -->
+    <div id="modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="p-6 bg-slate-800/70 border-b border-slate-700 flex justify-between items-center">
+                <div>
+                    <h3 id="modal-title" class="text-xl font-bold text-white">Lesson Situations</h3>
+                    <p id="modal-subtitle" class="text-xs text-slate-400 mt-1">First select if situation is found, then set its solution status.</p>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white text-2xl font-bold px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 transition">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-4 flex-1" id="modal-content">
+                <!-- Situation list generated here -->
+            </div>
+            <div class="p-4 bg-slate-800/50 border-t border-slate-700 text-right">
+                <button onclick="closeModal()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition">Done / Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const topics = [
+            { id: 1, lesson: "Lesson 1", topic: "Fluid Properties", member: "Joeram", count: 6 },
+            { id: 2, lesson: "Lesson 2", topic: "Pressure", member: "Joeram", count: 38 },
+            { id: 3, lesson: "Lesson 3", topic: "Dams / Gates", member: "Joeram", count: 4 },
+            { id: 4, lesson: "Lesson 4", topic: "Plane Gates", member: "Jerome", count: 45 },
+            { id: 5, lesson: "Lesson 5", topic: "Curved Gates", member: "Jerome", count: 4 },
+            { id: 6, lesson: "Lesson 6", topic: "Buoyancy", member: "Matt", count: 60 },
+            { id: 7, lesson: "Lesson 7", topic: "Stability of Floating Bodies", member: "Matt", count: 1 },
+            { id: 8, lesson: "Lesson 8", topic: "Rectilinear Translation", member: "Efraim", count: 16 },
+            { id: 9, lesson: "Lesson 9", topic: "Rotating Vessels", member: "Efraim", count: 18 },
+            { id: 10, lesson: "Lesson 10", topic: "Fundamentals of Fluid Flow", member: "Efraim", count: 19 },
+            { id: 11, lesson: "Lesson 11", topic: "Orifice", member: "Kimjay", count: 19 },
+            { id: 12, lesson: "Lesson 12", topic: "Pipes", member: "Kimjay", count: 36 },
+            { id: 13, lesson: "Lesson 13", topic: "Reservoir", member: "Kimjay", count: 9 },
+            { id: 14, lesson: "Lesson 14", topic: "Open Channels", member: "Dancel", count: 42 },
+            { id: 15, lesson: "Lesson 15", topic: "Hydrodynamics", member: "Dancel", count: 6 }
+        ];
+
+        // Load data from localStorage or initialize
+        // Each situation stores: { sitFound: 'No'/'Yes', solStatus: 'not found'/'found'/'solved' }
+        let appData = JSON.parse(localStorage.getItem('hydraulics_tracker_v2')) || {};
+        
+        topics.forEach(t => {
+            if (!appData[t.lesson]) {
+                appData[t.lesson] = {};
+                for (let i = 1; i <= t.count; i++) {
+                    appData[t.lesson][`Situation ${i}`] = { sitFound: 'No', solStatus: 'not found' };
+                }
+            }
+        });
+
+        function saveData() {
+            localStorage.setItem('hydraulics_tracker_v2', JSON.stringify(appData));
+            renderTable();
+            updateStats();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            topics.forEach(t => {
+                let sitFoundCount = 0;
+                let solDoneCount = 0;
+
+                for (let i = 1; i <= t.count; i++) {
+                    const sit = appData[t.lesson] && appData[t.lesson][`Situation ${i}`];
+                    if (sit) {
+                        if (sit.sitFound === 'Yes') sitFoundCount++;
+                        if (sit.solStatus === 'found' || sit.solStatus === 'solved') solDoneCount++;
+                    }
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/45 transition";
+                tr.innerHTML = `
+                    <td class="p-4 font-semibold text-blue-400">${t.lesson}</td>
+                    <td class="p-4 font-medium text-white">${t.topic}</td>
+                    <td class="p-4 text-slate-300">${t.member}</td>
+                    <td class="p-4 text-center text-slate-300 font-mono">${t.count}</td>
+                    <td class="p-4 text-center font-bold text-blue-400 font-mono">${sitFoundCount} / ${t.count}</td>
+                    <td class="p-4 text-center font-bold text-emerald-400 font-mono">${solDoneCount} / ${t.count}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="openModal('${t.lesson}')" class="px-3.5 py-1.5 bg-slate-800 hover:bg-blue-600 text-white font-medium text-xs rounded-xl border border-slate-700 hover:border-blue-500 transition shadow-sm">
+                            Manage Situations
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            updateStats();
+        }
+
+        function updateStats() {
+            let totalReq = 323;
+            let totalSitFound = 0;
+            let totalSolDone = 0;
+
+            topics.forEach(t => {
+                if (appData[t.lesson]) {
+                    for (let i = 1; i <= t.count; i++) {
+                        const sit = appData[t.lesson][`Situation ${i}`];
+                        if (sit) {
+                            if (sit.sitFound === 'Yes') totalSitFound++;
+                            if (sit.solStatus === 'found' || sit.solStatus === 'solved') totalSolDone++;
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('stat-total').innerText = totalReq;
+            document.getElementById('stat-situations-found').innerText = totalSitFound;
+            document.getElementById('stat-solutions-done').innerText = totalSolDone;
+        }
+
+        let currentLesson = null;
+
+        function openModal(lessonName) {
+            currentLesson = lessonName;
+            const topicObj = topics.find(t => t.lesson === lessonName);
+            
+            document.getElementById('modal-title').innerText = `${topicObj.lesson}: ${topicObj.topic}`;
+            document.getElementById('modal-subtitle').innerText = `Assigned to ${topicObj.member} • Total Situations: ${topicObj.count}`;
+
+            const content = document.getElementById('modal-content');
+            content.innerHTML = '';
+
+            for (let i = 1; i <= topicObj.count; i++) {
+                const sitName = `Situation ${i}`;
+                const sitData = (appData[lessonName] && appData[lessonName][sitName]) || { sitFound: 'No', solStatus: 'not found' };
+
+                const div = document.createElement('div');
+                div.className = "bg-slate-800/70 border border-slate-700/60 p-4 rounded-xl space-y-3";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-white text-base">${sitName}</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <!-- Situation Found Selector -->
+                        <div class="flex items-center justify-between bg-slate-900/60 border border-slate-700/50 p-2.5 rounded-lg">
+                            <span class="text-xs text-slate-400 font-medium">Situation Found?</span>
+                            <select onchange="updateSitFound('${lessonName}', '${sitName}', this.value)" class="bg-slate-900 border ${sitData.sitFound === 'Yes' ? 'border-blue-500 text-blue-400 font-bold' : 'border-slate-700 text-slate-300'} text-xs rounded-lg px-2.5 py-1.5 focus:outline-none transition">
+                                <option value="No" ${sitData.sitFound === 'No' ? 'selected' : ''}>No</option>
+                                <option value="Yes" ${sitData.sitFound === 'Yes' ? 'selected' : ''}>Yes</option>
+                            </select>
+                        </div>
+
+                        <!-- Solution Status Selector (Conditional or Always Visible) -->
+                        <div class="flex items-center justify-between bg-slate-900/60 border border-slate-700/50 p-2.5 rounded-lg">
+                            <span class="text-xs text-slate-400 font-medium">Solution Status:</span>
+                            <select onchange="updateSolStatus('${lessonName}', '${sitName}', this.value)" class="bg-slate-900 border ${sitData.solStatus !== 'not found' ? 'border-emerald-500 text-emerald-400 font-bold' : 'border-slate-700 text-slate-300'} text-xs rounded-lg px-2.5 py-1.5 focus:outline-none transition">
+                                <option value="not found" ${sitData.solStatus === 'not found' ? 'selected' : ''}>Not Found</option>
+                                <option value="found" ${sitData.solStatus === 'found' ? 'selected' : ''}>Found</option>
+                                <option value="solved" ${sitData.solStatus === 'solved' ? 'selected' : ''}>Solved</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+                content.appendChild(div);
+            }
+
+            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('modal').classList.add('flex');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            document.getElementById('modal').classList.remove('flex');
+        }
+
+        function updateSitFound(lesson, situation, val) {
+            if (!appData[lesson]) appData[lesson] = {};
+            if (!appData[lesson][situation]) appData[lesson][situation] = { sitFound: 'No', solStatus: 'not found' };
+            appData[lesson][situation].sitFound = val;
+            saveData();
+            openModal(lesson);
+        }
+
+        function updateSolStatus(lesson, situation, val) {
+            if (!appData[lesson]) appData[lesson] = {};
+            if (!appData[lesson][situation]) appData[lesson][situation] = { sitFound: 'No', solStatus: 'not found' };
+            appData[lesson][situation].solStatus = val;
+            saveData();
+            openModal(lesson);
+        }
+
+        function exportJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "hydraulics_tracker_v2_backup.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        // Initialize on load
+        renderTable();
+    </script>
+</body>
+</html>
