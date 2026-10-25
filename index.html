@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hydraulics Past Boards - Group Tracker</title>
+    <title>Hydraulics Past Boards - Group Tracker & Comments</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        window.firebaseModules = { initializeApp, getDatabase, ref, set, onValue, push, update, remove };
+    </script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
     <div class="max-w-7xl mx-auto space-y-6">
@@ -13,50 +19,153 @@
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl gap-4">
             <div>
                 <h1 class="text-2xl md:text-3xl font-extrabold text-blue-400 tracking-tight">Hydraulics Past Boards Tracker</h1>
-                <p class="text-sm text-slate-400 mt-1">CELE Compilation Progress & Situation Status Board</p>
+                <p class="text-sm text-slate-400 mt-1">CELE Compilation Progress, Live Chat & Task Comments</p>
             </div>
-            <div class="flex gap-3 w-full md:w-auto">
+            <div class="flex gap-3 w-full md:w-auto items-center">
                 <button onclick="exportJSON()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl shadow-lg transition">Export Backup</button>
             </div>
         </header>
 
         <!-- Summary Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Total Situations Required</p>
+                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Total Required</p>
                 <p id="stat-total" class="text-3xl font-bold text-white mt-2">323</p>
             </div>
             <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Total Situations Found</p>
+                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Situations Found</p>
                 <p id="stat-situations-found" class="text-3xl font-bold text-blue-400 mt-2">0</p>
             </div>
             <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Total Solutions Found / Solved</p>
+                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Solutions Done</p>
                 <p id="stat-solutions-done" class="text-3xl font-bold text-emerald-400 mt-2">0</p>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                <p class="text-xs uppercase tracking-wider font-semibold text-slate-400">Open Comments</p>
+                <p id="stat-open-comments" class="text-3xl font-bold text-amber-400 mt-2">0</p>
             </div>
         </div>
 
-        <!-- Main Table Container -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-800/70 text-slate-300 uppercase text-xs tracking-wider border-b border-slate-700">
-                            <th class="p-4">Lesson #</th>
-                            <th class="p-4">Topic Name</th>
-                            <th class="p-4">Assigned Member</th>
-                            <th class="p-4 text-center">Required</th>
-                            <th class="p-4 text-center">Situations Found</th>
-                            <th class="p-4 text-center">Solutions Found / Solved</th>
-                            <th class="p-4 text-center">Manage Situations</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body" class="divide-y divide-slate-800 text-sm">
-                        <!-- Populated by JS -->
-                    </tbody>
-                </table>
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-slate-800 gap-4">
+            <button id="tab-tracker-btn" onclick="switchTab('tracker')" class="pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400 transition">Progress Tracker</button>
+            <button id="tab-comments-btn" onclick="switchTab('comments')" class="pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-2">
+                Task Comments / Threads
+                <span id="open-comment-badge" class="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs rounded-full">0 Open</span>
+            </button>
+        </div>
+
+        <!-- TAB 1: TRACKER & CHAT -->
+        <div id="tab-tracker" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left 2 Columns: Tracker Table -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-800/70 text-slate-300 uppercase text-xs tracking-wider border-b border-slate-700">
+                                    <th class="p-4">Lesson #</th>
+                                    <th class="p-4">Topic Name</th>
+                                    <th class="p-4">Assigned</th>
+                                    <th class="p-4 text-center">Req</th>
+                                    <th class="p-4 text-center">Sit Found</th>
+                                    <th class="p-4 text-center">Sol Done</th>
+                                    <th class="p-4 text-center">Manage</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="divide-y divide-slate-800 text-sm">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right 1 Column: Live Chat -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl flex flex-col h-[650px]">
+                <div class="p-4 bg-slate-800/70 border-b border-slate-700 flex justify-between items-center">
+                    <h3 class="font-bold text-white flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Group Live Chat
+                    </h3>
+                    <span id="chat-status" class="text-xs text-slate-400">Connecting...</span>
+                </div>
+                <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3">
+                    <div class="text-center text-xs text-slate-500 py-4">Loading messages...</div>
+                </div>
+                <div class="p-4 bg-slate-800/50 border-t border-slate-700 space-y-2">
+                    <input type="text" id="chat-nickname" placeholder="Enter your nickname..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+                    <div class="flex gap-2">
+                        <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="handleKeyPress(event)" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+                        <button onclick="sendMessage()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition">Send</button>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <!-- TAB 2: GOOGLE DOCS STYLE COMMENTS & TASK THREADS -->
+        <div id="tab-comments" class="hidden space-y-6">
+            <!-- Add New Comment Card -->
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <span class="text-blue-400">💬</span> Post a Comment or Issue Thread
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="text-xs text-slate-400 font-medium">Select Lesson / Topic:</label>
+                        <select id="comment-lesson" class="w-full mt-1 bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500">
+                            <option value="General">General / Whole Project</option>
+                            <option value="Lesson 1">Lesson 1: Fluid Properties</option>
+                            <option value="Lesson 2">Lesson 2: Pressure</option>
+                            <option value="Lesson 3">Lesson 3: Dams / Gates</option>
+                            <option value="Lesson 4">Lesson 4: Plane Gates</option>
+                            <option value="Lesson 5">Lesson 5: Curved Gates</option>
+                            <option value="Lesson 6">Lesson 6: Buoyancy</option>
+                            <option value="Lesson 7">Lesson 7: Stability of Floating Bodies</option>
+                            <option value="Lesson 8">Lesson 8: Rectilinear Translation</option>
+                            <option value="Lesson 9">Lesson 9: Rotating Vessels</option>
+                            <option value="Lesson 10">Lesson 10: Fundamentals of Fluid Flow</option>
+                            <option value="Lesson 11">Lesson 11: Orifice</option>
+                            <option value="Lesson 12">Lesson 12: Pipes</option>
+                            <option value="Lesson 13">Lesson 13: Reservoir</option>
+                            <option value="Lesson 14">Lesson 14: Open Channels</option>
+                            <option value="Lesson 15">Lesson 15: Hydrodynamics</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 font-medium">Situation # (Optional):</label>
+                        <input type="text" id="comment-situation" placeholder="e.g. Situation 12" class="w-full mt-1 bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 font-medium">Your Nickname:</label>
+                        <input type="text" id="comment-author" placeholder="Enter nickname..." class="w-full mt-1 bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 font-medium">Comment / Problem Details:</label>
+                    <textarea id="comment-body" rows="3" placeholder="Describe the issue or notes (e.g. Missing solution key for problem #3, please verify answer...)" class="w-full mt-1 bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-xl p-3 focus:outline-none focus:border-blue-500"></textarea>
+                </div>
+                <div class="text-right">
+                    <button onclick="postComment()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg transition">Post Comment Thread</button>
+                </div>
+            </div>
+
+            <!-- Comment Filter Buttons -->
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-white">Active Comment Threads</h3>
+                <div class="flex gap-2">
+                    <button onclick="filterComments('all')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-lg border border-slate-700">All</button>
+                    <button onclick="filterComments('open')" class="px-3 py-1 bg-amber-500/20 text-amber-400 text-xs font-semibold rounded-lg border border-amber-500/30">Open Only</button>
+                    <button onclick="filterComments('resolved')" class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-lg border border-emerald-500/30">Resolved Only</button>
+                </div>
+            </div>
+
+            <!-- List of Comments -->
+            <div id="comments-container" class="space-y-4">
+                <div class="text-center text-slate-500 text-xs py-8">No comments posted yet.</div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Modal for Detailed Situation Checklist -->
@@ -78,7 +187,35 @@
         </div>
     </div>
 
+    <!-- Firebase Script -->
     <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlxlRL5kaQDnRHW6ByQHRYIu6XJTwNzhw",
+            authDomain: "hydraulics-tracker.firebaseapp.com",
+            databaseURL: "https://hydraulics-tracker-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "hydraulics-tracker",
+            storageBucket: "hydraulics-tracker.firebasestorage.app",
+            messagingSenderId: "368028027046",
+            appId: "1:368028027046:web:57976f12016387a3ca8c67"
+        };
+
+        let db = null;
+        let isFirebaseConnected = false;
+
+        try {
+            const { initializeApp } = window.firebaseModules;
+            const { getDatabase, ref, set, onValue, push, update, remove } = window.firebaseModules;
+            const app = initializeApp(firebaseConfig);
+            db = getDatabase(app);
+            isFirebaseConnected = true;
+            document.getElementById('chat-status').innerText = 'Connected Live';
+            document.getElementById('chat-status').className = 'text-xs text-emerald-400 font-semibold';
+        } catch (e) {
+            console.warn("Firebase connection error. Running in offline/localStorage mode.", e);
+            document.getElementById('chat-status').innerText = 'Offline Mode';
+            document.getElementById('chat-status').className = 'text-xs text-amber-400 font-semibold';
+        }
+
         const topics = [
             { id: 1, lesson: "Lesson 1", topic: "Fluid Properties", member: "Joeram", count: 6 },
             { id: 2, lesson: "Lesson 2", topic: "Pressure", member: "Joeram", count: 38 },
@@ -97,10 +234,10 @@
             { id: 15, lesson: "Lesson 15", topic: "Hydrodynamics", member: "Dancel", count: 6 }
         ];
 
-        // Load data from localStorage or initialize
-        // Each situation stores: { sitFound: 'No'/'Yes', solStatus: 'not found'/'found'/'solved' }
-        let appData = JSON.parse(localStorage.getItem('hydraulics_tracker_v2')) || {};
-        
+        let appData = JSON.parse(localStorage.getItem('hydraulics_tracker_v3')) || {};
+        let commentsData = JSON.parse(localStorage.getItem('hydraulics_comments_v1')) || {};
+        let activeCommentFilter = 'all';
+
         topics.forEach(t => {
             if (!appData[t.lesson]) {
                 appData[t.lesson] = {};
@@ -110,10 +247,257 @@
             }
         });
 
+        function switchTab(tabName) {
+            if (tabName === 'tracker') {
+                document.getElementById('tab-tracker').classList.remove('hidden');
+                document.getElementById('tab-comments').classList.add('hidden');
+                document.getElementById('tab-tracker-btn').className = "pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400 transition";
+                document.getElementById('tab-comments-btn').className = "pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-2";
+            } else {
+                document.getElementById('tab-tracker').classList.add('hidden');
+                document.getElementById('tab-comments').classList.remove('hidden');
+                document.getElementById('tab-comments-btn').className = "pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400 transition flex items-center gap-2";
+                document.getElementById('tab-tracker-btn').className = "pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition";
+            }
+        }
+
         function saveData() {
-            localStorage.setItem('hydraulics_tracker_v2', JSON.stringify(appData));
+            localStorage.setItem('hydraulics_tracker_v3', JSON.stringify(appData));
+            if (isFirebaseConnected && db) {
+                const { ref, set } = window.firebaseModules;
+                set(ref(db, 'trackerData'), appData);
+            }
             renderTable();
             updateStats();
+        }
+
+        if (isFirebaseConnected && db) {
+            const { ref, onValue } = window.firebaseModules;
+            onValue(ref(db, 'trackerData'), (snapshot) => {
+                const val = snapshot.val();
+                if (val) {
+                    appData = val;
+                    localStorage.setItem('hydraulics_tracker_v3', JSON.stringify(appData));
+                    renderTable();
+                    updateStats();
+                }
+            });
+
+            onValue(ref(db, 'chatMessages'), (snapshot) => {
+                const messages = snapshot.val();
+                const chatContainer = document.getElementById('chat-messages');
+                chatContainer.innerHTML = '';
+                if (!messages) {
+                    chatContainer.innerHTML = '<div class="text-center text-xs text-slate-500 py-4">No messages yet. Say hello!</div>';
+                    return;
+                }
+                Object.values(messages).forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = "bg-slate-800/60 border border-slate-700/50 p-2.5 rounded-xl space-y-1";
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-xs text-blue-400">${escapeHtml(msg.nickname)}</span>
+                            <span class="text-[10px] text-slate-500">${msg.time}</span>
+                        </div>
+                        <p class="text-xs text-slate-200 break-words">${escapeHtml(msg.text)}</p>
+                    `;
+                    chatContainer.appendChild(div);
+                });
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            });
+
+            // Sync Comments from Firebase
+            onValue(ref(db, 'commentsData'), (snapshot) => {
+                const val = snapshot.val();
+                if (val) {
+                    commentsData = val;
+                } else {
+                    commentsData = {};
+                }
+                localStorage.setItem('hydraulics_comments_v1', JSON.stringify(commentsData));
+                renderComments();
+            });
+        } else {
+            renderLocalChat();
+            renderComments();
+        }
+
+        function postComment() {
+            const lesson = document.getElementById('comment-lesson').value;
+            const situation = document.getElementById('comment-situation').value.trim();
+            const author = document.getElementById('comment-author').value.trim() || "Anonymous";
+            const body = document.getElementById('comment-body').value.trim();
+
+            if (!body) return;
+
+            const time = new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const commentObj = {
+                lesson,
+                situation: situation || 'General',
+                author,
+                body,
+                time,
+                resolved: false,
+                resolvedBy: ""
+            };
+
+            if (isFirebaseConnected && db) {
+                const { ref, push } = window.firebaseModules;
+                push(ref(db, 'commentsData'), commentObj);
+            } else {
+                const key = 'local_' + Date.now();
+                commentsData[key] = commentObj;
+                localStorage.setItem('hydraulics_comments_v1', JSON.stringify(commentsData));
+                renderComments();
+            }
+
+            document.getElementById('comment-body').value = '';
+            document.getElementById('comment-situation').value = '';
+            localStorage.setItem('hydraulics_nickname', author);
+        }
+
+        function toggleResolveComment(key) {
+            const currentStatus = commentsData[key].resolved;
+            const author = localStorage.getItem('hydraulics_nickname') || "A teammate";
+            
+            if (isFirebaseConnected && db) {
+                const { ref, update } = window.firebaseModules;
+                update(ref(db, `commentsData/${key}`), {
+                    resolved: !currentStatus,
+                    resolvedBy: !currentStatus ? author : ""
+                });
+            } else {
+                commentsData[key].resolved = !currentStatus;
+                commentsData[key].resolvedBy = !currentStatus ? author : "";
+                localStorage.setItem('hydraulics_comments_v1', JSON.stringify(commentsData));
+                renderComments();
+            }
+        }
+
+        function deleteComment(key) {
+            if (!confirm("Delete this comment thread?")) return;
+            if (isFirebaseConnected && db) {
+                const { ref, remove } = window.firebaseModules;
+                remove(ref(db, `commentsData/${key}`));
+            } else {
+                delete commentsData[key];
+                localStorage.setItem('hydraulics_comments_v1', JSON.stringify(commentsData));
+                renderComments();
+            }
+        }
+
+        function filterComments(type) {
+            activeCommentFilter = type;
+            renderComments();
+        }
+
+        function renderComments() {
+            const container = document.getElementById('comments-container');
+            container.innerHTML = '';
+
+            let openCount = 0;
+            const keys = Object.keys(commentsData);
+
+            if (keys.length === 0) {
+                container.innerHTML = '<div class="text-center text-slate-500 text-xs py-8 bg-slate-900 border border-slate-800 rounded-2xl">No comments or threads posted yet.</div>';
+                document.getElementById('open-comment-badge').innerText = '0 Open';
+                document.getElementById('stat-open-comments').innerText = '0';
+                return;
+            }
+
+            keys.reverse().forEach(key => {
+                const c = commentsData[key];
+                if (!c.resolved) openCount++;
+
+                if (activeCommentFilter === 'open' && c.resolved) return;
+                if (activeCommentFilter === 'resolved' && !c.resolved) return;
+
+                const div = document.createElement('div');
+                div.className = `p-5 rounded-2xl border ${c.resolved ? 'bg-slate-900/50 border-slate-800/80 text-slate-400' : 'bg-slate-900 border-slate-700/80 shadow-xl'} space-y-3 transition`;
+                
+                div.innerHTML = `
+                    <div class="flex justify-between items-start flex-wrap gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold rounded-lg">${escapeHtml(c.lesson)}</span>
+                            ${c.situation !== 'General' ? `<span class="px-2 py-1 bg-slate-800 text-slate-300 text-xs rounded-lg">${escapeHtml(c.situation)}</span>` : ''}
+                            <span class="text-xs font-bold text-slate-200">${escapeHtml(c.author)}</span>
+                            <span class="text-[10px] text-slate-500">• ${c.time}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleResolveComment('${key}')" class="px-3 py-1 text-xs font-semibold rounded-lg border transition ${c.resolved ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'}">
+                                ${c.resolved ? '↩ Re-open Issue' : '✓ Mark Resolved'}
+                            </button>
+                            <button onclick="deleteComment('${key}')" class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs rounded-lg transition">&times;</button>
+                        </div>
+                    </div>
+                    <p class="text-xs md:text-sm text-slate-200 leading-relaxed ${c.resolved ? 'line-through text-slate-500' : ''}">${escapeHtml(c.body)}</p>
+                    ${c.resolved ? `<div class="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">✓ Resolved by ${escapeHtml(c.resolvedBy || 'Teammate')}</div>` : ''}
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('open-comment-badge').innerText = `${openCount} Open`;
+            document.getElementById('stat-open-comments').innerText = openCount;
+        }
+
+        function renderLocalChat() {
+            const chatContainer = document.getElementById('chat-messages');
+            let localMsgs = JSON.parse(localStorage.getItem('hydraulics_chat_local')) || [];
+            chatContainer.innerHTML = '';
+            localMsgs.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = "bg-slate-800/60 border border-slate-700/50 p-2.5 rounded-xl space-y-1";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-xs text-blue-400">${escapeHtml(msg.nickname)}</span>
+                        <span class="text-[10px] text-slate-500">${msg.time}</span>
+                    </div>
+                    <p class="text-xs text-slate-200 break-words">${escapeHtml(msg.text)}</p>
+                `;
+                chatContainer.appendChild(div);
+            });
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function sendMessage() {
+            const nickInput = document.getElementById('chat-nickname');
+            const textInput = document.getElementById('chat-input');
+            const nickname = nickInput.value.trim() || "Anonymous";
+            const text = textInput.value.trim();
+
+            if (!text) return;
+
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            if (isFirebaseConnected && db) {
+                const { ref, push } = window.firebaseModules;
+                push(ref(db, 'chatMessages'), { nickname, text, time });
+            } else {
+                let localMsgs = JSON.parse(localStorage.getItem('hydraulics_chat_local')) || [];
+                localMsgs.push({ nickname, text, time });
+                localStorage.setItem('hydraulics_chat_local', JSON.stringify(localMsgs));
+                renderLocalChat();
+            }
+
+            textInput.value = '';
+            localStorage.setItem('hydraulics_nickname', nickname);
+            document.getElementById('comment-author').value = nickname;
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedNick = localStorage.getItem('hydraulics_nickname');
+            if (savedNick) {
+                document.getElementById('chat-nickname').value = savedNick;
+                document.getElementById('comment-author').value = savedNick;
+            }
+        });
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
         function renderTable() {
@@ -143,7 +527,7 @@
                     <td class="p-4 text-center font-bold text-emerald-400 font-mono">${solDoneCount} / ${t.count}</td>
                     <td class="p-4 text-center">
                         <button onclick="openModal('${t.lesson}')" class="px-3.5 py-1.5 bg-slate-800 hover:bg-blue-600 text-white font-medium text-xs rounded-xl border border-slate-700 hover:border-blue-500 transition shadow-sm">
-                            Manage Situations
+                            Manage
                         </button>
                     </td>
                 `;
@@ -197,7 +581,6 @@
                         <span class="font-bold text-white text-base">${sitName}</span>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <!-- Situation Found Selector -->
                         <div class="flex items-center justify-between bg-slate-900/60 border border-slate-700/50 p-2.5 rounded-lg">
                             <span class="text-xs text-slate-400 font-medium">Situation Found?</span>
                             <select onchange="updateSitFound('${lessonName}', '${sitName}', this.value)" class="bg-slate-900 border ${sitData.sitFound === 'Yes' ? 'border-blue-500 text-blue-400 font-bold' : 'border-slate-700 text-slate-300'} text-xs rounded-lg px-2.5 py-1.5 focus:outline-none transition">
@@ -206,7 +589,6 @@
                             </select>
                         </div>
 
-                        <!-- Solution Status Selector (Conditional or Always Visible) -->
                         <div class="flex items-center justify-between bg-slate-900/60 border border-slate-700/50 p-2.5 rounded-lg">
                             <span class="text-xs text-slate-400 font-medium">Solution Status:</span>
                             <select onchange="updateSolStatus('${lessonName}', '${sitName}', this.value)" class="bg-slate-900 border ${sitData.solStatus !== 'not found' ? 'border-emerald-500 text-emerald-400 font-bold' : 'border-slate-700 text-slate-300'} text-xs rounded-lg px-2.5 py-1.5 focus:outline-none transition">
@@ -249,13 +631,12 @@
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", "hydraulics_tracker_v2_backup.json");
+            downloadAnchor.setAttribute("download", "hydraulics_tracker_backup.json");
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
         }
 
-        // Initialize on load
         renderTable();
     </script>
 </body>
